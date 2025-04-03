@@ -1,10 +1,12 @@
+import tkinter
+
 import requests
 from tkinter import *
 from PIL import Image, ImageTk
 import io
+from pathlib import Path
 
-from PIL.ImageOps import expand
-
+bg_color = 'white'
 
 #functions
 def get_fox_image():
@@ -21,7 +23,7 @@ def get_fox_image():
         img_data = img_response.content #binary
         #converting image to PhotoImage object
         image = Image.open(io.BytesIO(img_data))
-        image = image.resize((500, 500))
+        #image = image.resize((500, 500))
         fox_image = ImageTk.PhotoImage(image)
         canvas.itemconfig(fox_canvas, image=fox_image)
     else:
@@ -29,22 +31,54 @@ def get_fox_image():
 
 
 def save_image():
-    save_img_data = requests.get(fox_url).content
-    with open('saved_photos/fox.jpg', 'wb') as save:
+    try:
+        save_img_data = requests.get(fox_url).content
+    except NameError:
+        print('Geneate image first!')
+        return
+    number = 1
+    path_to_file = Path(f'saved_photos/fox{number}.jpg')
+    while path_to_file.is_file():
+        print(f"fox{number}.jpg exists")
+        number += 1
+        path_to_file = Path(f'saved_photos/fox{number}.jpg')
+
+    with open(path_to_file, 'wb') as save:
         save.write(save_img_data)
 
-#window
-window = Tk()
-window.config(width=900, height=900, padx=30, pady=30, bg='black')
-canvas = Canvas(width=700, height=700, bg='black', highlightthickness=0)
+def change_motive():
+    global bg_color
+    if bg_color == 'white':
+        bg_color = 'black'
+        btn_text.set('White mode')
+    else:
+        bg_color = 'white'
+        btn_text.set('Dark mode')
 
+    canvas.configure(bg=bg_color)
+    window.configure(bg=bg_color)
+
+#window and Canvas
+window = Tk()
+window.config(width=900, height=900)
+canvas = Canvas(width=700, height=700, highlightthickness=0)
 fox_canvas = canvas.create_image(350, 350, image=None)
-canvas.grid(row=0, column=0)
+
+
+#----------BUTTONS----------
 
 new_fox = Button(text='Generate new Fox', command=get_fox_image)
-new_fox.grid(row=1, column=0)
 save_fox = Button(text='Save Fox', command=save_image)
-save_fox.grid(row=2, column=0)
+btn_text = tkinter.StringVar(window, 'Dark Mode')
+change_motive = Button(textvariable=btn_text, command=change_motive)
+btn_text.set('Dark mode')
+
+#-------------UI------------
+
+canvas.grid(row=0, column=0, columnspan=2)
+new_fox.grid(row=1, column=0)
+save_fox.grid(row=1, column=1)
+change_motive.grid(row=2, column=0, columnspan=2)
 
 window.mainloop()
 
